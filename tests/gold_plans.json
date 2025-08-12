@@ -1,0 +1,31 @@
+{
+  "overloaded_restaurant": {
+    "final_plan": {
+      "actions": [
+        "swap_merchant:m_spicecorner2",
+        "re_route_driver",
+        "notify_customer"
+      ],
+      "summary": "Swapped to m_spicecorner2, driver re-routed, customer notified"
+    }
+  },
+  "damaged_packaging": {
+    "final_plan": {
+      "actions": [
+        "issue_instant_refund",
+        "exonerate_driver",
+        "log_merchant_packaging_feedback"
+      ],
+      "summary": "Refund issued, driver exonerated, merchant feedback logged"
+    }
+  },
+  "recipient_unavailable": {
+    "final_plan": {
+      "actions": [
+        "contact_recipient_via_chat",
+        "find_nearby_locker"
+      ],
+      "summary": "Recipient contacted; locker suggested or reattempt scheduled"
+    }
+  }
+}

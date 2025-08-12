@@ -1,0 +1,30 @@
+{
+  "overloaded_restaurant": {
+    "description": "Driver is near SpiceCorner. Merchant reports a 40-minute prep time; customer expects 20 minutes. What should be done?",
+    "driver_id": "d123",
+    "merchant_id": "m_spicecorner",
+    "customer_id": "c001",
+    "location": "customer_address"
+  },
+  "damaged_packaging": {
+    "description": "Customer reports that soup container is leaking; merchant denies responsibility.",
+    "order_id": "o_12345",
+    "driver_id": "d222",
+    "merchant_id": "m_soupshop",
+    "customer_id": "c002",
+    "location": "customer_address"
+  },
+  "recipient_unavailable": {
+    "description": "Driver arrives at destination, but recipient is not available to receive the package.",
+    "driver_id": "d321",
+    "recipient_id": "c555",
+    "location": "customer_address"
+  },
+  "traffic_obstruction": {
+    "description": "Passenger is on the way to the airport. A major accident is detected along the planned route.",
+    "driver_id": "d789",
+    "passenger_id": "p001",
+    "origin": "downtown",
+    "destination": "airport"
+  }
+}
