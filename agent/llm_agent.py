@@ -3,20 +3,56 @@ import json
 import re
 from typing import Any, Dict, List, Tuple
 from dotenv import load_dotenv
+from langchain.prompts import PromptTemplate
+from langchain.schema import BaseMessage, AIMessage, HumanMessage, SystemMessage
+from langchain.chat_models.base import BaseChatModel
+from pydantic import PrivateAttr
 from groq import Groq
 from simulator import tools
 from .prompts import SYSTEM_PROMPT, FEW_SHOT_EXAMPLES
 
 load_dotenv()
 
-class GroqLLM:
-    def __init__(self, model="llama-3.1-8b-instant", temperature=0):
+
+# Custom LangChain chat model for Groq
+class LangChainGroqLLM(BaseChatModel):
+    _client: Groq = PrivateAttr()
+    _model: str = PrivateAttr()
+    _temperature: float = PrivateAttr()
+
+    def __init__(self, model="llama-3.1-8b-instant", temperature=0, **kwargs):
+        super().__init__(**kwargs)
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise ValueError("GROQ_API_KEY is not set in .env file")
-        self.client = Groq(api_key=api_key)
-        self.model = model
-        self.temperature = temperature
+        self._client = Groq(api_key=api_key)
+        self._model = model
+        self._temperature = temperature
+
+    def _generate(self, messages: list, **kwargs):
+        # Convert LangChain message objects to Groq format
+        groq_messages = []
+        for m in messages:
+            if isinstance(m, SystemMessage):
+                groq_messages.append({"role": "system", "content": m.content})
+            elif isinstance(m, HumanMessage):
+                groq_messages.append({"role": "user", "content": m.content})
+            elif isinstance(m, AIMessage):
+                groq_messages.append({"role": "assistant", "content": m.content})
+
+        # Call Groq API
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=groq_messages,
+            temperature=self._temperature
+        )
+
+        content = response.choices[0].message.content
+        return AIMessage(content=content)
+
+    @property
+    def _llm_type(self) -> str:
+        return "groq-chat"
 
     def _extract_json(self, text: str) -> str:
         text = re.sub(r"```(?:json)?", "", text).strip()
@@ -25,18 +61,11 @@ class GroqLLM:
             return match.group(0)
         return text
 
-    def generate(self, prompt: str) -> str:
+    def generate_json(self, prompt: str) -> str:
         for attempt in range(2):
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=self.temperature
-            )
-            content = response.choices[0].message.content
-            json_str = self._extract_json(content)
+            ai_message = self._generate([SystemMessage(content=SYSTEM_PROMPT),
+                                         HumanMessage(content=prompt)])
+            json_str = self._extract_json(ai_message.content)
             try:
                 json.loads(json_str)
                 return json_str
@@ -44,11 +73,12 @@ class GroqLLM:
                 if attempt == 0:
                     prompt += "\nIMPORTANT: Respond ONLY with valid JSON per schema."
                 else:
-                    raise ValueError(f"Groq LLM output is not valid JSON after retries: {content}")
+                    raise ValueError(f"Groq LLM output is not valid JSON after retries: {ai_message.content}")
+
 
 class SynapseAgent:
     def __init__(self, llm=None, max_iters: int = 8, repeat_limit: int = 2):
-        self.llm = llm or GroqLLM()
+        self.llm = llm or LangChainGroqLLM()
         self.max_iters = max_iters
         self.repeat_limit = repeat_limit
         self.chain_of_thought: List[Dict[str, Any]] = []
@@ -109,7 +139,7 @@ class SynapseAgent:
         recent_actions = []
 
         for i in range(self.max_iters):
-            llm_text = self.llm.generate(prompt)
+            llm_text = self.llm.generate_json(prompt)
             parsed = self.parse_response(llm_text)
 
             action_name = parsed.get("action", "").strip()
@@ -159,6 +189,7 @@ class SynapseAgent:
             final_plan = {"status": "incomplete", "reason": "max_iters_reached"}
 
         return {"cot": self.chain_of_thought, "final_plan": final_plan}
+
 
 if __name__ == "__main__":
     scenfile = os.path.join(os.path.dirname(os.path.dirname(__file__)), "simulator", "scenarios.json")

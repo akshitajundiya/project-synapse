@@ -24,7 +24,7 @@ def load_scenarios(path: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Project Synapse Agent")
+    parser = argparse.ArgumentParser(description="Run Project Synapse Agent (Groq + LangChain)")
     parser.add_argument("--scenario", required=True, help="Scenario key from simulator/scenarios.json")
     parser.add_argument("--scenarios-file", default="simulator/scenarios.json")
     args = parser.parse_args()
@@ -40,10 +40,12 @@ def main():
         print(f"{Fore.RED}Scenario '{args.scenario}' not found in {scen_file}")
         return
 
+    # Ensure GROQ_API_KEY is set
     if not os.getenv("GROQ_API_KEY"):
         print(f"{Fore.RED}Error: GROQ_API_KEY is not set in environment or .env file.")
         return
 
+    # Create agent with Groq LLM through LangChain
     agent = SynapseAgent()
     print(f"{Fore.CYAN}Running scenario: {args.scenario}{Style.RESET_ALL}\n")
 
