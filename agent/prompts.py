@@ -1,4 +1,4 @@
-SYSTEM_PROMPT = """         sdrfghj
+SYSTEM_PROMPT = """         
 You are Synapse — an autonomous last-mile delivery coordinator.
 
 You have access to the following tools:
